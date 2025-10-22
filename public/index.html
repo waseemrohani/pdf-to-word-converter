@@ -1,0 +1,61 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>PDF → Word</title>
+  <style>
+    body{font-family:system-ui,Arial;margin:40px}
+    .card{max-width:640px;padding:20px;border-radius:8px;border:1px solid #ddd}
+    label{display:block;margin-bottom:10px}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>PDF → Word</h1>
+    <form id="uploadForm">
+      <label>Select PDF file (.pdf)
+        <input type="file" name="pdfFile" accept="application/pdf" required />
+      </label>
+      <button type="submit">Convert & download</button>
+    </form>
+    <p id="status"></p>
+  </div>
+
+<script>
+const form = document.getElementById('uploadForm');
+const status = document.getElementById('status');
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  status.textContent = 'Uploading...';
+  const fd = new FormData(form);
+  try {
+    const res = await fetch('/api/convert', { method: 'POST', body: fd });
+    if (!res.ok) {
+      const t = await res.text();
+      status.textContent = 'Error: ' + t;
+      return;
+    }
+    const blob = await res.blob();
+
+    // Attempt to parse filename from header
+    const disposition = res.headers.get('content-disposition') || '';
+    let filename = 'converted.docx';
+    const m = disposition.match(/filename="?(.*)"?/);
+    if (m) filename = m[1];
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    status.textContent = 'Done';
+  } catch (err) {
+    console.error(err);
+    status.textContent = 'Upload failed';
+  }
+});
+</script>
+</body>
+</html>
